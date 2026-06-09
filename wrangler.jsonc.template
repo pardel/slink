@@ -1,0 +1,74 @@
+// Template for wrangler.jsonc. Copy this to wrangler.jsonc and fill in the
+// deployment-specific values (D1 database id, Cloudflare Access team domain + AUD).
+// wrangler.jsonc itself is gitignored so real ids/credentials never land in git.
+//
+//   cp wrangler.jsonc.template wrangler.jsonc
+//
+{
+	"name": "slink",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-09-23",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	// Two custom domains on one Worker: example.com serves only public short-link
+	// redirects; admin.example.com serves the Access-protected dashboard + API. The Worker
+	// dispatches by hostname (see src/index.ts). custom_domain:true provisions the
+	// DNS; workers_dev:false disables the *.workers.dev URL.
+	"routes": [
+		{
+			"pattern": "example.com",
+			"custom_domain": true
+		},
+		{
+			"pattern": "admin.example.com",
+			"custom_domain": true
+		}
+	],
+	"workers_dev": false,
+	// Persist Worker logs (onError 500s + click-log failures) so they're queryable
+	// in the dashboard, not only via a live `wrangler tail`.
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	},
+	// Daily retention sweep (see the scheduled handler in src/index.ts).
+	"triggers": {
+		"crons": [
+			"0 3 * * *"
+		]
+	},
+	"assets": {
+		"directory": "./dashboard/dist",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		// Route every request through the Worker first so it fully controls routing
+		// (dashboard only under /admin, short links public at /:slug). Without this,
+		// assets would be served at the root and bypass Access path-prefix scoping.
+		"run_worker_first": true
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "slink",
+			"database_id": "REPLACE_AFTER_CREATE",
+			"migrations_dir": "migrations"
+		},
+		{
+			"binding": "slink",
+			"database_name": "slink",
+			"database_id": "REPLACE_AFTER_CREATE",
+			"remote": true
+		}
+	],
+	"vars": {
+		// From your Cloudflare Access application (see README → Cloudflare Access).
+		"ACCESS_TEAM_DOMAIN": "REPLACE.cloudflareaccess.com",
+		"ACCESS_AUD": "REPLACE_ACCESS_APP_AUD",
+		// The host that serves only short-link redirects, and the base URL the
+		// dashboard uses to build short links / QR codes.
+		"PUBLIC_HOST": "example.com",
+		"SHORT_BASE_URL": "https://example.com",
+		"CLICKS_RETENTION_DAYS": "180"
+	}
+}

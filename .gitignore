@@ -1,0 +1,6 @@
+node_modules/
+dashboard/dist/
+.wrangler/
+.dev.vars
+# Real deploy config (D1 ids, Access AUD/team domain). Copy from wrangler.jsonc.template
+wrangler.jsonc

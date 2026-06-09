@@ -1,0 +1,1 @@
+CREATE INDEX `clicks_link_ts_idx` ON `clicks` (`link_id`,`ts`);

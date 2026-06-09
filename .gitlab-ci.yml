@@ -1,0 +1,44 @@
+# CI for Slink. Runs on merge requests and pushes to the default branch.
+# Gates: TypeScript typecheck, the Workers-runtime test suite, a production
+# dependency audit, and a gitleaks secret scan. node:20 (glibc) is used rather
+# than alpine because the @cloudflare/vitest-pool-workers runtime (workerd)
+# wants a glibc image.
+default:
+  image: node:20
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+
+verify:
+  stage: test
+  script:
+    - npm run typecheck
+    - npm test
+    # Production deps only: the 4 known dev-only drizzle-kit->esbuild advisories
+    # are deferred (see README/CHANGELOG) and must not gate the build.
+    - npm audit --omit=dev --audit-level=high
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Fail the pipeline if a credential (API token, private key, high-entropy string)
+# is ever committed. gitleaks exits non-zero on any finding. Runs in the gitleaks
+# image, so it overrides the default node:20 image and the npm-ci before_script.
+secret-scan:
+  stage: test
+  image:
+    name: ghcr.io/gitleaks/gitleaks:latest
+    entrypoint: [""]
+  before_script: []
+  script:
+    # --no-git scans the working tree (the files actually published), independent
+    # of clone depth; --redact keeps any matched secret out of the CI logs.
+    - gitleaks detect --source . --no-git --verbose --redact
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
