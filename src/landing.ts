@@ -77,7 +77,7 @@ export const LANDING_HTML = `<!doctype html>
         <path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>
       </svg>
     </a>
-    <p class="foot">Open source · Apache-2.0</p>
+    <p class="foot">Open source · MIT</p>
   </main>
 </body>
 </html>`;

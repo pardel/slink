@@ -251,4 +251,4 @@ all / custom range) drives both views.
 
 ## License
 
-Apache License 2.0. See [LICENSE](./LICENSE). Copyright 2026 pardel.
+MIT License. See [LICENSE](./LICENSE). Copyright 2026 pardel.
