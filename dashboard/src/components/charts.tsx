@@ -45,7 +45,7 @@ export function SeriesChart({ series }: { series: { day: number; n: number }[] }
           </span>
           <span className="flex h-3 flex-1 items-center">
             <span
-              className="h-full origin-left animate-grow rounded-sm bg-accent"
+              className="h-full origin-left animate-grow rounded-xs bg-accent"
               style={{ width: `${Math.max(2, Math.round((d.n / maxN) * 100))}%` }}
               aria-hidden
             />

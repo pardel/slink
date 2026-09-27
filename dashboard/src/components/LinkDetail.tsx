@@ -67,7 +67,7 @@ export function LinkDetail({ link, slug, shortBase, ready, onSave, onArchive, on
   };
 
   const back = (
-    <a href="/" onClick={onLinkClick("/")} className="act">← All links</a>
+    <a href="/" onClick={onLinkClick("/")} className="act inline-block">← All links</a>
   );
 
   if (!link) {
@@ -132,7 +132,7 @@ export function LinkDetail({ link, slug, shortBase, ready, onSave, onArchive, on
                     <button onClick={() => onUnarchive(link.id)} className="act">Unarchive</button>
                     <button
                       onClick={() => { if (confirm(`Delete /${link.slug} and its analytics? This cannot be undone.`)) { onDelete(link.id); navigate("/"); } }}
-                      className="act hover:!text-accent hover:!decoration-accent"
+                      className="act hover:text-accent! hover:decoration-accent!"
                     >
                       Delete
                     </button>

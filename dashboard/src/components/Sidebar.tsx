@@ -31,7 +31,7 @@ export function Sidebar({ email, path }: { email: string | null; path: string })
       <div className="flex-1" />
 
       <div className="flex items-center gap-2.5 rounded-[10px] border border-line p-2">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-[#7C73F5] text-[13px] font-semibold text-white">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-accent to-[#7C73F5] text-[13px] font-semibold text-white">
           {initial}
         </span>
         <div className="min-w-0">

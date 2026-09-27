@@ -57,7 +57,7 @@ export function ListView({ links, shortBase, onCreated, onArchive, onUnarchive, 
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search for links"
-              className="w-full rounded-[10px] border border-line bg-panel py-2 pl-9 pr-3 text-sm transition placeholder:text-muted/60 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+              className="w-full rounded-[10px] border border-line bg-panel py-2 pl-9 pr-3 text-sm transition placeholder:text-muted/60 focus:border-accent focus:outline-hidden focus:ring-2 focus:ring-accent/15"
             />
           </div>
           <div className="flex shrink-0 gap-0.5 rounded-[10px] border border-line p-0.5">

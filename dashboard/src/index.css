@@ -1,6 +1,141 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  /* Clean technical sans for UI/headings, mono for link data (slugs, URLs, dates).
+     System fallbacks first so layout never shifts before the self-hosted faces load. */
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Cool, calm SaaS palette: soft canvas behind a white "window", near-black
+     ink, indigo signal accent for active/interactive states. */
+  --color-canvas: #f3f4f7;
+  --color-panel: #ffffff;
+  --color-ink: #171a21;
+  --color-muted: #6b7280;
+  --color-line: #e8eaef;
+  --color-accent: #4f46e5;
+  --color-accent-soft: #eef0ff;
+
+  --radius-card: 12px;
+
+  --shadow-card:
+    0 1px 2px 0 rgba(23, 26, 33, 0.04), 0 1px 3px 0 rgba(23, 26, 33, 0.06);
+  --shadow-window:
+    0 1px 0 0 rgba(23, 26, 33, 0.04), 0 24px 60px -32px rgba(23, 26, 33, 0.3);
+
+  --animate-rise: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-grow: grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-slide-in: slide-in 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-fade-in: fade-in 0.2s ease both;
+
+  @keyframes rise {
+    0% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes grow {
+    0% {
+      transform: scaleX(0);
+    }
+    100% {
+      transform: scaleX(1);
+    }
+  }
+  @keyframes slide-in {
+    0% {
+      transform: translateX(100%);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility kicker {
+  /* Uppercase mono micro-label (analytics section headers, stat tiles). */
+  @apply font-mono text-[11px] uppercase tracking-[0.14em] text-muted;
+}
+
+@utility field {
+  @apply w-full bg-panel border border-line rounded-[10px] px-3 py-2 font-mono text-[14px] text-ink transition;
+  @apply placeholder:font-sans placeholder:text-muted/60 focus:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/15;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2 text-sm font-medium border transition active:translate-y-px disabled:opacity-50 disabled:active:translate-y-0;
+}
+
+@utility btn-ink {
+  @apply bg-ink text-white border-ink hover:bg-ink/90;
+}
+
+@utility btn-ghost {
+  @apply bg-panel border-line text-ink hover:bg-ink/3 hover:border-ink/20;
+}
+
+@utility pill {
+  /* Pill/badge for the per-link visitor & click counts. */
+  @apply inline-flex items-center gap-1.5 rounded-[8px] border border-line bg-panel px-2.5 py-1 text-[13px] font-medium text-ink;
+}
+
+@utility act {
+  /* Inline text action. */
+  @apply font-sans text-[13px] text-muted underline decoration-line decoration-1 underline-offset-4 transition hover:text-ink hover:decoration-accent;
+}
+
+@utility card {
+  @apply bg-panel border border-line rounded-card;
+}
+
+@utility navitem {
+  /* Sidebar navigation item. */
+  @apply flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-sm font-medium text-muted transition hover:bg-ink/3 hover:text-ink;
+}
+
+@utility navitem-active {
+  @apply bg-accent-soft text-accent hover:bg-accent-soft hover:text-accent;
+}
+
+@utility icon-btn {
+  /* Small square icon-button (copy / open / kebab). */
+  @apply inline-flex h-7 w-7 items-center justify-center rounded-[7px] text-muted transition hover:bg-ink/5 hover:text-ink;
+}
+
+@utility menu-item {
+  /* Row of a kebab dropdown menu. */
+  @apply flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-[13px] text-ink transition hover:bg-ink/4;
+}
 
 @layer base {
   html {
@@ -14,52 +149,6 @@
     @apply bg-accent text-white;
   }
   :focus-visible {
-    @apply outline-none ring-2 ring-accent/35 ring-offset-2 ring-offset-panel rounded-[6px];
-  }
-}
-
-@layer components {
-  /* Uppercase mono micro-label (analytics section headers, stat tiles). */
-  .kicker {
-    @apply font-mono text-[11px] uppercase tracking-[0.14em] text-muted;
-  }
-  .field {
-    @apply w-full bg-panel border border-line rounded-[10px] px-3 py-2 font-mono text-[14px] text-ink transition;
-    @apply placeholder:font-sans placeholder:text-muted/60 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15;
-  }
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2 text-sm font-medium border transition active:translate-y-px disabled:opacity-50 disabled:active:translate-y-0;
-  }
-  .btn-ink {
-    @apply bg-ink text-white border-ink hover:bg-ink/90;
-  }
-  .btn-ghost {
-    @apply bg-panel border-line text-ink hover:bg-ink/[0.03] hover:border-ink/20;
-  }
-  /* Pill/badge for the per-link visitor & click counts. */
-  .pill {
-    @apply inline-flex items-center gap-1.5 rounded-[8px] border border-line bg-panel px-2.5 py-1 text-[13px] font-medium text-ink;
-  }
-  /* Inline text action. */
-  .act {
-    @apply font-sans text-[13px] text-muted underline decoration-line decoration-1 underline-offset-4 transition hover:text-ink hover:decoration-accent;
-  }
-  .card {
-    @apply bg-panel border border-line rounded-card;
-  }
-  /* Sidebar navigation item. */
-  .navitem {
-    @apply flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-sm font-medium text-muted transition hover:bg-ink/[0.03] hover:text-ink;
-  }
-  .navitem-active {
-    @apply bg-accent-soft text-accent hover:bg-accent-soft hover:text-accent;
-  }
-  /* Small square icon-button (copy / open / kebab). */
-  .icon-btn {
-    @apply inline-flex h-7 w-7 items-center justify-center rounded-[7px] text-muted transition hover:bg-ink/[0.05] hover:text-ink;
-  }
-  /* Row of a kebab dropdown menu. */
-  .menu-item {
-    @apply flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-[13px] text-ink transition hover:bg-ink/[0.04];
+    @apply outline-hidden ring-2 ring-accent/35 ring-offset-2 ring-offset-panel rounded-[6px];
   }
 }

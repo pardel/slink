@@ -43,7 +43,7 @@ export function PeriodControl({ value, onChange, loading }: {
       aria-label={label}
       value={value[key]}
       onChange={(e) => onChange({ ...value, mode: "custom", [key]: e.target.value })}
-      className="rounded-[10px] border border-line bg-panel px-2.5 py-1.5 font-mono text-[13px] text-ink transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+      className="rounded-[10px] border border-line bg-panel px-2.5 py-1.5 font-mono text-[13px] text-ink transition focus:border-accent focus:outline-hidden focus:ring-2 focus:ring-accent/15"
     />
   );
 

@@ -93,7 +93,7 @@ export function CreatePanel({ open, shortBase, onClose, onCreated }: {
               <input
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                className="min-w-0 flex-1 bg-panel px-3 py-2 font-mono text-[14px] text-ink placeholder:font-sans placeholder:text-muted/60 focus:outline-none"
+                className="min-w-0 flex-1 bg-panel px-3 py-2 font-mono text-[14px] text-ink placeholder:font-sans placeholder:text-muted/60 focus:outline-hidden"
                 placeholder="my-link"
                 required
               />
@@ -102,7 +102,7 @@ export function CreatePanel({ open, shortBase, onClose, onCreated }: {
 
           <div className="space-y-2">
             <span className="text-sm font-medium text-ink">QR code</span>
-            <div className="grid h-52 place-items-center rounded-[12px] border border-line bg-canvas">
+            <div className="grid h-52 place-items-center rounded-card border border-line bg-canvas">
               {qr ? (
                 <img src={qr} alt="QR preview" className="h-40 w-40 rounded-[6px] bg-white p-2" />
               ) : (

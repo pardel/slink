@@ -61,7 +61,7 @@ export function LinkList({ links, shortBase, onArchive, onUnarchive, onDelete }:
         return (
           <li
             key={l.id}
-            className="group animate-rise rounded-[12px] border border-line bg-panel p-4 transition hover:border-ink/15 hover:shadow-card"
+            className="group animate-rise rounded-card border border-line bg-panel p-4 transition hover:border-ink/15 hover:shadow-card"
             style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
           >
             <div className="flex items-start gap-3">

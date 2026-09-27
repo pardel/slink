@@ -71,3 +71,7 @@ all / custom range) drives both views.
   (the repo otherwise uses `REPLACE_*` placeholders).
 - Backend tests authenticate via the `x-test-auth` header (gated behind `TEST_AUTH_KEY`,
   absent in production). The vitest config wires `DB` + an `ASSETS` fixture binding.
+- **Dependency pins.** `vitest` stays on 4 until `@cloudflare/vitest-pool-workers`
+  supports 5 (0.22.0 declares `vitest: ^4.1.0`). The `sharp` entry in `overrides`
+  lifts the copy nested under the pool's own pinned wrangler to a patched release;
+  drop it once the pool ships a wrangler with sharp >= 0.35.4.
