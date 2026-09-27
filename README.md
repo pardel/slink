@@ -4,7 +4,7 @@
 
 A self-hosted link shortener with analytics, running on Cloudflare Workers + D1 at zero recurring cost.
 
-Slink serves a React dashboard (link CRUD plus click analytics) under `/admin/`, exposes a JSON API under `/api/`, and resolves short links publicly at `/<slug>`. The dashboard and API are protected by Cloudflare Access; the short links stay public.
+Slink resolves short links publicly at `/<slug>` on your short domain, and serves a React dashboard (link CRUD plus click analytics) and a JSON API under `/api/` on a separate admin host. The dashboard and API are protected by Cloudflare Access; the short links stay public.
 
 For the design rationale and trade-offs behind the implementation, see [DESIGN.md](./DESIGN.md).
 
