@@ -3,15 +3,18 @@ import QRCode from "qrcode";
 import { type Link, type LinkUpdate } from "../api";
 import { navigate, onLinkClick } from "../router";
 import { LinkStats } from "./LinkStats";
+import { LoadStatus } from "./LoadStatus";
 
 // Dedicated page for one link: header (QR, short URL, target, actions) + full analytics.
 // Reached via /links/:slug. `link` is undefined until the parent's list loads, and
 // stays undefined (not found) when no link matches the slug in the URL.
-export function LinkDetail({ link, slug, shortBase, ready, onSave, onArchive, onUnarchive, onDelete }: {
+export function LinkDetail({ link, slug, shortBase, ready, loadError, onRetry, onSave, onArchive, onUnarchive, onDelete }: {
   link: Link | undefined;
   slug: string;
   shortBase: string;
   ready: boolean; // the link list has finished loading at least once
+  loadError: boolean;
+  onRetry: () => void;
   onSave: (id: number, body: LinkUpdate) => Promise<Link>;
   onArchive: (id: number) => void;
   onUnarchive: (id: number) => void;
@@ -80,7 +83,11 @@ export function LinkDetail({ link, slug, shortBase, ready, onSave, onArchive, on
     return (
       <div className="animate-rise space-y-5">
         {back}
-        <p className="font-mono text-[13px] text-muted">{ready ? `No link found for /${slug}.` : "Loading…"}</p>
+        {ready ? (
+          <p className="font-mono text-[13px] text-muted">No link found for /{slug}.</p>
+        ) : (
+          <LoadStatus error={loadError} onRetry={onRetry} />
+        )}
       </div>
     );
   }

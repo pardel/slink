@@ -24,7 +24,10 @@ export function LinkList({ links, shortBase, onArchive, onUnarchive, onDelete }:
   onUnarchive: (id: number) => void;
   onDelete: (id: number) => void;
 }) {
-  const [qr, setQr] = useState<Record<number, string>>({});
+  // Keyed by the full short URL, not the link id: the public base arrives from
+  // /api/config after the list may have rendered, and a slug can be renamed, so an
+  // id-keyed cache would keep serving codes for the old URL.
+  const [qr, setQr] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<number | null>(null);
   const [menuId, setMenuId] = useState<number | null>(null);
 
@@ -35,7 +38,8 @@ export function LinkList({ links, shortBase, onArchive, onUnarchive, onDelete }:
 
   useEffect(() => {
     links.forEach((l) => {
-      if (!qr[l.id]) QRCode.toDataURL(shortUrl(l.slug), { width: 256 }).then((d) => setQr((q) => ({ ...q, [l.id]: d })));
+      const url = shortUrl(l.slug);
+      if (!qr[url]) QRCode.toDataURL(url, { width: 256 }).then((d) => setQr((q) => ({ ...q, [url]: d }))).catch(() => {});
     });
   }, [links, base]);
 
@@ -98,7 +102,7 @@ export function LinkList({ links, shortBase, onArchive, onUnarchive, onDelete }:
                     <button className="fixed inset-0 z-10 cursor-default" onClick={() => setMenuId(null)} aria-label="Close menu" />
                     <div className="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-[10px] border border-line bg-panel py-1 shadow-card">
                       <a href={href} onClick={(e) => { onLinkClick(href)(e); setMenuId(null); }} className="menu-item">Edit</a>
-                      <a href={qr[l.id]} download={`${l.slug}.png`} onClick={() => setMenuId(null)} className="menu-item">Download QR</a>
+                      <a href={qr[shortUrl(l.slug)]} download={`${l.slug}.png`} onClick={() => setMenuId(null)} className="menu-item">Download QR</a>
                       {l.archived ? (
                         <>
                           <button onClick={() => { onUnarchive(l.id); setMenuId(null); }} className="menu-item">Unarchive</button>

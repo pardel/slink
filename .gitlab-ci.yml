@@ -1,10 +1,10 @@
 # CI for Slink. Runs on merge requests and pushes to the default branch.
 # Gates: TypeScript typecheck, the Workers-runtime test suite, a production
-# dependency audit, and a gitleaks secret scan. node:20 (glibc) is used rather
+# dependency audit, and a gitleaks secret scan. node:22 (glibc) is used rather
 # than alpine because the @cloudflare/vitest-pool-workers runtime (workerd)
 # wants a glibc image.
 default:
-  image: node:20
+  image: node:22
   cache:
     key:
       files:
@@ -28,7 +28,7 @@ verify:
 
 # Fail the pipeline if a credential (API token, private key, high-entropy string)
 # is ever committed. gitleaks exits non-zero on any finding. Runs in the gitleaks
-# image, so it overrides the default node:20 image and the npm-ci before_script.
+# image, so it overrides the default node:22 image and the npm-ci before_script.
 secret-scan:
   stage: test
   image:

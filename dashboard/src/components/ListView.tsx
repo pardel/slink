@@ -2,12 +2,16 @@ import { useState } from "react";
 import { type Link } from "../api";
 import { CreatePanel } from "./CreatePanel";
 import { LinkList } from "./LinkList";
+import { LoadStatus } from "./LoadStatus";
 import { SearchIcon } from "../icons";
 
 // The Links page: title bar + Create toggle, search + active/archived filter, then
 // the card list. Filtering is purely client-side over the already-loaded links.
-export function ListView({ links, shortBase, onCreated, onArchive, onUnarchive, onDelete }: {
+export function ListView({ links, ready, loadError, onRetry, shortBase, onCreated, onArchive, onUnarchive, onDelete }: {
   links: Link[];
+  ready: boolean; // the link list has finished loading at least once
+  loadError: boolean;
+  onRetry: () => void;
   shortBase: string;
   onCreated: () => void;
   onArchive: (id: number) => void;
@@ -66,13 +70,17 @@ export function ListView({ links, shortBase, onCreated, onArchive, onUnarchive, 
           </div>
         </div>
 
-        <LinkList
-          links={shown}
-          shortBase={shortBase}
-          onArchive={onArchive}
-          onUnarchive={onUnarchive}
-          onDelete={onDelete}
-        />
+        {ready ? (
+          <LinkList
+            links={shown}
+            shortBase={shortBase}
+            onArchive={onArchive}
+            onUnarchive={onUnarchive}
+            onDelete={onDelete}
+          />
+        ) : (
+          <LoadStatus error={loadError} onRetry={onRetry} />
+        )}
       </div>
 
       <CreatePanel

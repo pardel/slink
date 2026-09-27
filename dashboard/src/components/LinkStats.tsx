@@ -8,15 +8,20 @@ export function LinkStats({ id }: { id: number }) {
   const [err, setErr] = useState(false);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
+  const [attempt, setAttempt] = useState(0); // bumped by Retry to re-run the fetch
 
   useEffect(() => {
     const { from, to } = periodRange(period);
     setLoading(true);
+    // A newer period (or link) supersedes this request; drop its late response so it
+    // can't overwrite fresher data and leave the control out of step with the numbers.
+    let stale = false;
     api.stats(id, from, to)
-      .then((d) => { setS(d); setErr(false); })
-      .catch(() => setErr(true))
-      .finally(() => setLoading(false));
-  }, [id, period.mode, period.customFrom, period.customTo]);
+      .then((d) => { if (!stale) { setS(d); setErr(false); } })
+      .catch(() => { if (!stale) setErr(true); })
+      .finally(() => { if (!stale) setLoading(false); });
+    return () => { stale = true; };
+  }, [id, period.mode, period.customFrom, period.customTo, attempt]);
 
   return (
     <div className="space-y-5">
@@ -26,7 +31,10 @@ export function LinkStats({ id }: { id: number }) {
       </div>
 
       {err ? (
-        <p className="font-mono text-[13px] text-accent">Couldn’t load stats. Try again.</p>
+        <div className="flex flex-wrap items-center gap-4" role="alert">
+          <p className="font-mono text-[13px] text-accent">Couldn’t load stats.</p>
+          <button onClick={() => { setErr(false); setAttempt((n) => n + 1); }} className="act">Retry</button>
+        </div>
       ) : !s ? (
         <p className="font-mono text-[13px] text-muted">Loading…</p>
       ) : (

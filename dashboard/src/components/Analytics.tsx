@@ -19,15 +19,20 @@ export function Analytics({ shortBase }: { shortBase: string }) {
   const [err, setErr] = useState(false);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
+  const [attempt, setAttempt] = useState(0); // bumped by Retry to re-run the fetch
 
   useEffect(() => {
     const { from, to } = periodRange(period);
     setLoading(true);
+    // A newer period (or link) supersedes this request; drop its late response so it
+    // can't overwrite fresher data and leave the control out of step with the numbers.
+    let stale = false;
     api.overview(from, to)
-      .then((d) => { setO(d); setErr(false); })
-      .catch(() => setErr(true))
-      .finally(() => setLoading(false));
-  }, [period.mode, period.customFrom, period.customTo]);
+      .then((d) => { if (!stale) { setO(d); setErr(false); } })
+      .catch(() => { if (!stale) setErr(true); })
+      .finally(() => { if (!stale) setLoading(false); });
+    return () => { stale = true; };
+  }, [period.mode, period.customFrom, period.customTo, attempt]);
 
   const base = shortBase || location.origin;
   const maxTop = Math.max(1, ...(o?.topLinks ?? []).map((t) => t.clicks));
@@ -45,7 +50,10 @@ export function Analytics({ shortBase }: { shortBase: string }) {
         </div>
 
         {err ? (
-          <p className="font-mono text-[13px] text-accent">Couldn’t load analytics. Try again.</p>
+          <div className="flex flex-wrap items-center gap-4" role="alert">
+          <p className="font-mono text-[13px] text-accent">Couldn’t load analytics.</p>
+          <button onClick={() => { setErr(false); setAttempt((n) => n + 1); }} className="act">Retry</button>
+        </div>
         ) : !o ? (
           <p className="font-mono text-[13px] text-muted">Loading…</p>
         ) : (

@@ -41,7 +41,7 @@ The admin dashboard (behind Cloudflare Access) for managing links and reading an
 
 To run or deploy Slink you need:
 
-- **Node.js 20 or newer** (the version pinned in `.nvmrc`; with `nvm` installed, `nvm use` selects it). npm ships with Node.
+- **Node.js 22 or newer** (Wrangler 4 requires it; the version pinned in `.nvmrc`; with `nvm` installed, `nvm use` selects it). npm ships with Node.
 - **Git**, to clone the repository.
 - **A Cloudflare account** (the free tier covers Workers + D1, so there is no recurring cost).
 
