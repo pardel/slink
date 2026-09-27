@@ -1,3 +1,5 @@
+<img src="assets/logo.svg" alt="" width="96" height="96" align="right">
+
 # Slink
 
 A self-hosted link shortener with analytics, running on Cloudflare Workers + D1 at zero recurring cost.

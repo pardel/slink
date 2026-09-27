@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Slink">
+  <title>Slink</title>
+  <!-- The link glyph the dashboard and h301.dev already use, drawn large, with
+       its two halves told apart: the one you share in light, the one it
+       resolves to in the indigo of the "Slink." dot. Two parts, one join,
+       which is all a short link is.
+
+       Kept to the same glyph on purpose, so the favicon a visitor sees on a
+       redirect page and the mark on the projects page are one thing. The tile,
+       its radius and its ground are the same as the other marks on pardel.dev. -->
+  <rect width="512" height="512" rx="112" fill="#0f172a"/>
+  <g transform="translate(88 88) scale(14)" fill="none" stroke-width="2.6"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5" stroke="#818cf8"/>
+    <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5" stroke="#e2e8f0"/>
+  </g>
+</svg>
