@@ -1,17 +1,33 @@
 import { Hono } from "hono";
 import { drizzle } from "drizzle-orm/d1";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { links, clicks } from "../db/schema";
 import { buildTarget, isValidSlug } from "../lib/url";
 import { visitorHash, dayKey, parseUserAgent } from "../lib/visitor";
-import { LANDING_HTML } from "../landing";
+import { LANDING_HTML, landingHtml } from "../landing";
 import type { Env } from "../index";
 
 export const redirect = new Hono<{ Bindings: Env }>();
 
+const LATEST_LIMIT = 5;
+
 // Public landing page instead of a bare 404, at the root and as the fallback for
-// anything that isn't a live short link.
-redirect.get("/", (c) => c.html(LANDING_HTML));
+// anything that isn't a live short link. The root also lists the newest live links;
+// a D1 failure degrades to the plain page rather than a 500.
+redirect.get("/", async (c) => {
+  try {
+    const latest = await drizzle(c.env.DB)
+      .select({ slug: links.slug, title: links.title, targetUrl: links.targetUrl })
+      .from(links)
+      .where(eq(links.archived, 0))
+      .orderBy(desc(links.createdAt), desc(links.id))
+      .limit(LATEST_LIMIT);
+    return c.html(landingHtml(latest));
+  } catch (e) {
+    console.error("latest links query failed", e);
+    return c.html(LANDING_HTML);
+  }
+});
 
 redirect.get("/:slug", async (c) => {
   const slug = c.req.param("slug");

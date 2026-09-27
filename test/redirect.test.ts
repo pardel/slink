@@ -80,7 +80,7 @@ describe("GET /:slug", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const body = await res.text();
-    expect(body).toContain("gitlab.com/pardel/slink");
+    expect(body).toContain("github.com/pardel/slink");
     expect(body).toContain("Slink");
     // The data-URI favicon must be URL-encoded, else its quotes break the <link>
     // href and the SVG tail leaks as visible text at the top of the page.
@@ -88,10 +88,38 @@ describe("GET /:slug", () => {
     expect(body).not.toContain("data:image/svg+xml,<svg");
   });
 
+  it("lists the newest live links on the root page, escaped, archived excluded", async () => {
+    const now = Date.now();
+    const insert = env.DB.prepare(
+      "INSERT INTO links (slug, target_url, title, created_at, archived) VALUES (?, ?, ?, ?, ?)"
+    );
+    await env.DB.batch([
+      insert.bind("older", "https://old.example/x", null, now - 2000, 0),
+      insert.bind("newest", "https://new.example/y", "<b>New</b> & shiny", now + 1000, 0),
+      insert.bind("hidden", "https://hidden.example/z", "Gone", now + 2000, 1),
+    ]);
+    const body = await (await worker.fetch(new Request("https://example.test/"), env, createExecutionContext())).text();
+    expect(body).toContain("Latest links");
+    expect(body).toContain('href="/newest"');
+    expect(body).toContain("&#60;b&#62;New&#60;/b&#62; &#38; shiny");
+    expect(body).not.toContain("<b>New</b>");
+    expect(body).toContain("old.example"); // untitled links fall back to the target host
+    expect(body).not.toContain("/hidden");
+    expect(body.indexOf("/newest")).toBeLessThan(body.indexOf("/talk"));
+    expect(body.indexOf("/talk")).toBeLessThan(body.indexOf("/older"));
+    // The list sits above the private-instance notice.
+    expect(body.indexOf("Latest links")).toBeLessThan(body.indexOf("This is a private instance"));
+  });
+
+  it("does not list links on the 404 fallback page", async () => {
+    const res = await worker.fetch(new Request("https://example.test/nope"), env, createExecutionContext());
+    expect(await res.text()).not.toContain("Latest links");
+  });
+
   it("serves the landing page (not a bare 404) for an unknown slug", async () => {
     const res = await worker.fetch(new Request("https://example.test/nope"), env, createExecutionContext());
     expect(res.status).toBe(404);
-    expect(await res.text()).toContain("gitlab.com/pardel/slink");
+    expect(await res.text()).toContain("github.com/pardel/slink");
   });
 
   it("stores only the referrer's origin, dropping path and query (PII safety)", async () => {

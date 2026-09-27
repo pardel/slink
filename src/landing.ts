@@ -3,7 +3,7 @@
 // Self-contained HTML (inline <style>, no JS, no external fonts) so it works under
 // the strict 'self' + 'unsafe-inline'-styles CSP with no extra requests.
 
-const REPO_URL = "https://gitlab.com/pardel/slink";
+const REPO_URL = "https://github.com/pardel/slink";
 
 // The admin logo mark, used as a data-URI favicon. URL-encode the whole SVG so its
 // own double-quotes don't terminate the href="" attribute.
@@ -16,7 +16,41 @@ const FAVICON_SVG =
   `</g></svg>`;
 const FAVICON_HREF = `data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}`;
 
-export const LANDING_HTML = `<!doctype html>
+// The newest live links, shown above the private-instance notice on the root page.
+export interface LatestLink {
+  slug: string;
+  title: string | null;
+  targetUrl: string;
+}
+
+// Titles are free text entered in the dashboard, so everything interpolated into
+// the page is escaped.
+function esc(s: string): string {
+  return s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+}
+
+function label(link: LatestLink): string {
+  if (link.title) return link.title;
+  try {
+    return new URL(link.targetUrl).hostname;
+  } catch {
+    return link.targetUrl;
+  }
+}
+
+function latestList(latest: LatestLink[]): string {
+  if (latest.length === 0) return "";
+  const items = latest
+    .map(
+      (l) =>
+        `<li><a href="/${esc(l.slug)}"><span class="slug">/${esc(l.slug)}</span><span class="label">${esc(label(l))}</span></a></li>`
+    )
+    .join("");
+  return `<section class="latest" aria-labelledby="latest-h"><h2 id="latest-h">Latest links</h2><ul>${items}</ul></section>`;
+}
+
+export function landingHtml(latest: LatestLink[] = []): string {
+  return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -57,6 +91,23 @@ export const LANDING_HTML = `<!doctype html>
   .cta:hover { background: var(--accent); }
   .foot { margin-top: 22px; font-size: 13px; color: var(--muted); }
   .foot code { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .latest { margin: 24px 0 20px; text-align: left; }
+  .latest h2 {
+    font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 8px;
+  }
+  .latest ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  .latest li { border-bottom: 1px solid var(--line); }
+  .latest a {
+    display: flex; align-items: baseline; gap: 12px; padding: 10px 2px;
+    color: var(--ink); text-decoration: none;
+  }
+  .latest a:hover .slug { color: var(--accent); }
+  .latest .slug { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; flex: none; }
+  .latest .label {
+    color: var(--muted); font-size: 14px; margin-left: auto;
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
 </style>
 </head>
 <body>
@@ -70,9 +121,10 @@ export const LANDING_HTML = `<!doctype html>
     </svg>
     <h1>Slink<span class="dot">.</span></h1>
     <p class="lede">A minimal, self-hosted URL shortener running on Cloudflare Workers.</p>
+    ${latestList(latest)}
     <p>This is a private instance. Short links are created by its owner. Build your own with the open-source code.</p>
     <a class="cta" href="${REPO_URL}" target="_blank" rel="noreferrer">
-      View source on GitLab
+      View source on GitHub
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>
       </svg>
@@ -81,3 +133,7 @@ export const LANDING_HTML = `<!doctype html>
   </main>
 </body>
 </html>`;
+}
+
+// Static variant for 404 fallbacks: no list, so a miss never costs a second query.
+export const LANDING_HTML = landingHtml();
