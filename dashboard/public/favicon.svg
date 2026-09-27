@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <!-- Matches the admin sidebar logo: ink rounded square + the white link glyph
-       (same paths as LinkIcon in src/icons.tsx, scaled from a 24px viewBox). -->
-  <rect width="32" height="32" rx="9" fill="#171A21"/>
-  <g transform="translate(8 8) scale(0.6667)" fill="none" stroke="#ffffff"
-     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/>
-    <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32">
+  <!-- The Slink logo (assets/logo.svg), without its notes. Keep the two in step,
+       and in step with LOGO_SVG in src/landing.ts. -->
+  <rect width="512" height="512" rx="112" fill="#0f172a"/>
+  <g transform="translate(88 88) scale(14)" fill="none" stroke-width="2.6"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5" stroke="#818cf8"/>
+    <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5" stroke="#e2e8f0"/>
   </g>
 </svg>

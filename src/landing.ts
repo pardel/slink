@@ -5,16 +5,17 @@
 
 const REPO_URL = "https://github.com/pardel/slink";
 
-// The admin logo mark, used as a data-URI favicon. URL-encode the whole SVG so its
-// own double-quotes don't terminate the href="" attribute.
-const FAVICON_SVG =
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">` +
-  `<rect width="32" height="32" rx="9" fill="#171A21"/>` +
-  `<g transform="translate(8 8) scale(0.6667)" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">` +
-  `<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/>` +
-  `<path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/>` +
+// The Slink logo (assets/logo.svg, dashboard/public/favicon.svg): the page's mark
+// and, URL-encoded so its own double-quotes don't terminate the href="" attribute,
+// its data-URI favicon.
+const LOGO_SVG =
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">` +
+  `<rect width="512" height="512" rx="112" fill="#0f172a"/>` +
+  `<g transform="translate(88 88) scale(14)" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">` +
+  `<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5" stroke="#818cf8"/>` +
+  `<path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5" stroke="#e2e8f0"/>` +
   `</g></svg>`;
-const FAVICON_HREF = `data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}`;
+const FAVICON_HREF = `data:image/svg+xml,${encodeURIComponent(LOGO_SVG)}`;
 
 // The newest live links, shown above the private-instance notice on the root page.
 export interface LatestLink {
@@ -112,13 +113,7 @@ export function landingHtml(latest: LatestLink[] = []): string {
 </head>
 <body>
   <main class="card">
-    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="9" fill="#171A21"/>
-      <g transform="translate(8 8) scale(0.6667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/>
-        <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/>
-      </g>
-    </svg>
+    ${LOGO_SVG.replace("<svg ", '<svg class="mark" aria-hidden="true" ')}
     <h1>Slink<span class="dot">.</span></h1>
     <p class="lede">A minimal, self-hosted URL shortener running on Cloudflare Workers.</p>
     ${latestList(latest)}

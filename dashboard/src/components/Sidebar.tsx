@@ -19,9 +19,7 @@ export function Sidebar({ email, path }: { email: string | null; path: string })
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-line p-4 md:flex">
       <a href="/" onClick={onLinkClick("/")} className="mb-8 mt-1 flex items-center gap-2.5 px-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-ink text-white">
-          <LinkIcon className="h-4 w-4" />
-        </span>
+        <img src="/favicon.svg" alt="" className="h-8 w-8" />
         <span className="text-[17px] font-semibold tracking-tight text-ink">Slink</span>
       </a>
 
