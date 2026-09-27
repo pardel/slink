@@ -20,7 +20,7 @@
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/ibm-plex-sans": "^5.2.8",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.6.0",
+    "hono": "^4.13.5",
     "jose": "^5.9.0",
     "qrcode": "^1.5.4"
   },
