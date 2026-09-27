@@ -178,7 +178,11 @@ After `npm run deploy` and the Access app are in place, confirm:
 - `admin.example.com/` : the dashboard SPA (Access-protected; unknown client-side routes fall back to the SPA shell).
 - `admin.example.com/api/...` : the JSON API (Access-protected; 401 without a valid Access JWT).
 - `example.com/<slug>` : public short-link redirect (302 to the target URL).
-- `example.com/` : 404. The apex is a pure redirector.
+- `example.com/<slug>+` : link preview. Shows where the link goes, its title and when it was added, with a button to continue. No redirect and no click logged, so anyone handed a short link can check it before following it.
+- `example.com/` : the public page, listing the newest links (10 by default, pinned first). Unlisted links never appear there but still redirect.
+- Anything else on `example.com` : a 404 page.
+
+The public page reads three optional vars from `wrangler.jsonc`: `OWNER_NAME` and `OWNER_URL` add a "Links by ..." line, and `PUBLIC_LINKS` sets how many links it lists (max 50).
 
 ## API reference
 
@@ -187,9 +191,10 @@ All `/api/*` is admin-only and Access-guarded.
 - `GET  /api/config` → `{ shortBase, email }` (email from the Access JWT header)
 - `GET  /api/links` → links **with aggregate `clicks` + unique `visitors` counts**
   (one grouped `LEFT JOIN clicks`), newest first
-- `POST /api/links` `{ slug, targetUrl, title? }` → 201 (409 on duplicate slug)
-- `PATCH /api/links/:id` `{ slug?, targetUrl?, title? }` → partial update / rename
-  (re-validates slug + target; 409 on slug collision)
+- `POST /api/links` `{ slug, targetUrl, title?, pinned?, listed? }` → 201 (409 on duplicate slug)
+- `PATCH /api/links/:id` `{ slug?, targetUrl?, title?, pinned?, listed? }` → partial update / rename
+  (re-validates slug + target; 409 on slug collision). `pinned` and `listed` are booleans:
+  pinned links lead the public page, unlisted ones stay off it. New links are listed and unpinned.
 - `POST /api/links/:id/archive` · `POST /api/links/:id/unarchive` · `DELETE /api/links/:id`
 
 ### Analytics endpoints

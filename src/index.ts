@@ -16,6 +16,9 @@ export interface Env {
   NOT_FOUND_URL?: string;
   TEST_AUTH_KEY?: string;
   CLICKS_RETENTION_DAYS?: string;
+  OWNER_NAME?: string; // optional "Links by ..." line on the public page
+  OWNER_URL?: string;
+  PUBLIC_LINKS?: string; // how many links the public page lists (default 10, max 50)
 }
 
 const app = new Hono<{ Bindings: Env }>();

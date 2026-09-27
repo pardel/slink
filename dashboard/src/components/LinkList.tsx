@@ -81,6 +81,8 @@ export function LinkList({ links, shortBase, onArchive, onUnarchive, onDelete }:
                   <button onClick={() => copy(l)} className="icon-btn" title="Copy short link"><CopyIcon className="h-4 w-4" /></button>
                   <a href={shortUrl(l.slug)} target="_blank" rel="noreferrer" className="icon-btn" title="Open short link"><ExternalIcon className="h-4 w-4" /></a>
                   {copied === l.id && <span className="text-[12px] font-medium text-accent">Copied</span>}
+                  {!l.archived && l.listed === 0 && <span className="badge">Unlisted</span>}
+                  {!l.archived && l.listed !== 0 && l.pinned ? <span className="badge badge-accent">Pinned</span> : null}
                 </div>
                 <p className="mt-0.5 flex items-center gap-1.5 font-mono text-[13px] text-muted">
                   <span className="text-muted/60">↳</span>

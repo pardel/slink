@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type Link } from "./api";
+import { api, type Link, type LinkUpdate } from "./api";
 import { LinkDetail } from "./components/LinkDetail";
 import { Sidebar } from "./components/Sidebar";
 import { ListView } from "./components/ListView";
@@ -23,7 +23,7 @@ export function App() {
 
   // Resolve with the updated link so the detail page can react to a slug change
   // (navigate to the new URL); errors propagate so it can show an inline message.
-  const onSave = (id: number, body: { slug?: string; targetUrl?: string }) =>
+  const onSave = (id: number, body: LinkUpdate) =>
     api.update(id, body).then((l) => { refresh(); return l; });
   const onArchive = (id: number) => api.archive(id).then(refresh).catch(fail);
   const onUnarchive = (id: number) => api.unarchive(id).then(refresh).catch(fail);

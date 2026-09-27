@@ -7,6 +7,10 @@ export const links = sqliteTable("links", {
   title: text("title"),
   createdAt: integer("created_at").notNull(),
   archived: integer("archived").notNull().default(0),
+  // Public-page controls: pinned links lead the list; unlisted ones never appear
+  // on it but still redirect.
+  pinned: integer("pinned").notNull().default(0),
+  listed: integer("listed").notNull().default(1),
 });
 
 export const clicks = sqliteTable(

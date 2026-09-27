@@ -1,5 +1,6 @@
 export interface Link {
   id: number; slug: string; targetUrl: string; title: string | null; archived: number;
+  pinned?: number; listed?: number; // public-page controls (0/1)
   createdAt?: number; clicks?: number; visitors?: number;
 }
 export interface Stats {
@@ -29,12 +30,14 @@ const rangeQuery = (from?: number | null, to?: number | null): string => {
   return qs ? `?${qs}` : "";
 };
 
+export type LinkUpdate = { slug?: string; targetUrl?: string; title?: string; pinned?: boolean; listed?: boolean };
+
 export const api = {
   config: (): Promise<{ shortBase: string; email: string | null }> => fetch("/api/config").then(json),
   list: (): Promise<Link[]> => fetch("/api/links").then(json),
   create: (slug: string, targetUrl: string, title?: string): Promise<Link> =>
     fetch("/api/links", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, targetUrl, title }) }).then(json),
-  update: (id: number, body: { slug?: string; targetUrl?: string; title?: string }): Promise<Link> =>
+  update: (id: number, body: LinkUpdate): Promise<Link> =>
     fetch(`/api/links/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json),
   archive: (id: number): Promise<void> =>
     fetch(`/api/links/${id}/archive`, { method: "POST" }).then(json),

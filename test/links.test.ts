@@ -178,6 +178,25 @@ describe("link CRUD", () => {
     expect(res.status).toBe(404);
   });
 
+  it("creates links listed and unpinned by default, and PATCH toggles both", async () => {
+    const created = await call("POST", "/api/links", { slug: "flags", targetUrl: "https://example.com" });
+    const row = (await created.json()) as { id: number; pinned: number; listed: number };
+    expect([row.pinned, row.listed]).toEqual([0, 1]);
+
+    const patched = await call("PATCH", `/api/links/${row.id}`, { pinned: true, listed: false });
+    expect(patched.status).toBe(200);
+    const list = (await (await call("GET", "/api/links")).json()) as { pinned: number; listed: number }[];
+    expect([list[0].pinned, list[0].listed]).toEqual([1, 0]);
+  });
+
+  it("rejects non-boolean pinned/listed with 400", async () => {
+    const bad = await call("POST", "/api/links", { slug: "bad", targetUrl: "https://example.com", pinned: "yes" });
+    expect(bad.status).toBe(400);
+    const created = await call("POST", "/api/links", { slug: "ok", targetUrl: "https://example.com" });
+    const { id } = (await created.json()) as { id: number };
+    expect((await call("PATCH", `/api/links/${id}`, { listed: 1 })).status).toBe(400);
+  });
+
   it("exposes the public short-link base at /api/config", async () => {
     const res = await call("GET", "/api/config");
     expect(res.status).toBe(200);

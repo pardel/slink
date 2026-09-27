@@ -1,44 +1,66 @@
 import { Hono } from "hono";
 import { drizzle } from "drizzle-orm/d1";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { links, clicks } from "../db/schema";
 import { buildTarget, isValidSlug } from "../lib/url";
 import { visitorHash, dayKey, parseUserAgent } from "../lib/visitor";
-import { LANDING_HTML, landingHtml } from "../landing";
+import { landingHtml } from "../landing";
 import type { Env } from "../index";
 
 export const redirect = new Hono<{ Bindings: Env }>();
 
-const LATEST_LIMIT = 5;
+// How many links the public page lists: PUBLIC_LINKS if set to a sane number,
+// otherwise 10. Capped so a typo can't turn the page into a full index.
+const DEFAULT_PUBLIC_LINKS = 10;
+const MAX_PUBLIC_LINKS = 50;
+const publicLinks = (env: Env) => {
+  const n = Number(env.PUBLIC_LINKS);
+  return Number.isInteger(n) && n > 0 ? Math.min(n, MAX_PUBLIC_LINKS) : DEFAULT_PUBLIC_LINKS;
+};
+
+// The page is headed with the host it was reached on, so it reads right on any
+// instance without extra config.
+const hostOf = (url: string) => new URL(url).host;
+const notFound = (url: string) => landingHtml({ host: hostOf(url), notFound: true });
+const ownerOf = (env: Env) => (env.OWNER_NAME ? { name: env.OWNER_NAME, url: env.OWNER_URL || undefined } : undefined);
 
 // Public landing page instead of a bare 404, at the root and as the fallback for
-// anything that isn't a live short link. The root also lists the newest live links;
-// a D1 failure degrades to the plain page rather than a 500.
+// anything that isn't a live short link. The root lists the newest listed links,
+// pinned first; a D1 failure degrades to the plain page rather than a 500.
 redirect.get("/", async (c) => {
   try {
     const latest = await drizzle(c.env.DB)
-      .select({ slug: links.slug, title: links.title, targetUrl: links.targetUrl })
+      .select({ slug: links.slug, title: links.title, targetUrl: links.targetUrl, createdAt: links.createdAt, pinned: links.pinned })
       .from(links)
-      .where(eq(links.archived, 0))
-      .orderBy(desc(links.createdAt), desc(links.id))
-      .limit(LATEST_LIMIT);
-    return c.html(landingHtml(latest));
+      .where(and(eq(links.archived, 0), eq(links.listed, 1)))
+      .orderBy(desc(links.pinned), desc(links.createdAt), desc(links.id))
+      .limit(publicLinks(c.env));
+    return c.html(landingHtml({ host: hostOf(c.req.url), owner: ownerOf(c.env), latest }));
   } catch (e) {
     console.error("latest links query failed", e);
-    return c.html(LANDING_HTML);
+    return c.html(landingHtml({ host: hostOf(c.req.url), owner: ownerOf(c.env) }));
   }
 });
 
 redirect.get("/:slug", async (c) => {
-  const slug = c.req.param("slug");
+  let slug = c.req.param("slug");
+  // /<slug>+ previews the link instead of following it: no redirect, no click logged.
+  // Unlisted links preview too; anyone holding the short link can already follow it.
+  if (slug.endsWith("+")) {
+    slug = slug.slice(0, -1);
+    if (!isValidSlug(slug)) return c.html(notFound(c.req.url), 404);
+    const row = (await drizzle(c.env.DB).select().from(links).where(eq(links.slug, slug)).limit(1))[0];
+    if (!row || row.archived) return c.html(notFound(c.req.url), 404);
+    return c.html(landingHtml({ host: hostOf(c.req.url), preview: row }));
+  }
   // Not slug-shaped (e.g. /favicon.ico, /robots.txt): skip the D1 lookup and the
   // NOT_FOUND_URL fallback; these are browser/probe noise, not missing links.
-  if (!isValidSlug(slug)) return c.html(LANDING_HTML, 404);
+  if (!isValidSlug(slug)) return c.html(notFound(c.req.url), 404);
   const db = drizzle(c.env.DB);
   const row = (await db.select().from(links).where(eq(links.slug, slug)).limit(1))[0];
   if (!row || row.archived) {
     if (c.env.NOT_FOUND_URL) return c.redirect(c.env.NOT_FOUND_URL, 302);
-    return c.html(LANDING_HTML, 404);
+    return c.html(notFound(c.req.url), 404);
   }
   const target = buildTarget(row.targetUrl, new URL(c.req.url).searchParams);
   // Fire-and-forget the click write; the redirect never waits on or fails for it,
@@ -50,7 +72,7 @@ redirect.get("/:slug", async (c) => {
 });
 
 // Multi-segment paths or other methods on the public host: landing page, not a 404.
-redirect.all("*", (c) => c.html(LANDING_HTML, 404));
+redirect.all("*", (c) => c.html(notFound(c.req.url), 404));
 
 async function logClick(envBindings: Env, req: Request, linkId: number): Promise<void> {
   const cf = (req.cf ?? {}) as { country?: string; city?: string };

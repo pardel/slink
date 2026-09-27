@@ -70,5 +70,10 @@
 		"PUBLIC_HOST": "example.com",
 		"SHORT_BASE_URL": "https://example.com",
 		"CLICKS_RETENTION_DAYS": "180"
+		// Optional: a "Links by ..." line on the public page. Leave out for none.
+		// "OWNER_NAME": "Your Name",
+		// "OWNER_URL": "https://example.com/about",
+		// Optional: how many links the public page lists (default 10, max 50).
+		// "PUBLIC_LINKS": "10"
 	}
 }

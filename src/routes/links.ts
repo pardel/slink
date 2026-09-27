@@ -12,7 +12,7 @@ linksApi.get("/", async (c) => {
   // not N per-row stats calls) so the list can show them on each card. Columns are
   // aliased to camelCase to match the JSON the dashboard already expects. Newest first.
   const rows = await c.env.DB.prepare(
-    `SELECT l.id, l.slug, l.target_url AS targetUrl, l.title, l.created_at AS createdAt, l.archived,
+    `SELECT l.id, l.slug, l.target_url AS targetUrl, l.title, l.created_at AS createdAt, l.archived, l.pinned, l.listed,
             COUNT(c.id) AS clicks, COUNT(DISTINCT c.visitor_hash) AS visitors
        FROM links l
        LEFT JOIN clicks c ON c.link_id = l.id
@@ -23,7 +23,7 @@ linksApi.get("/", async (c) => {
 });
 
 linksApi.post("/", async (c) => {
-  let body: { slug?: unknown; targetUrl?: unknown; title?: unknown };
+  let body: { slug?: unknown; targetUrl?: unknown; title?: unknown; pinned?: unknown; listed?: unknown };
   try {
     body = await c.req.json();
   } catch {
@@ -35,6 +35,9 @@ linksApi.post("/", async (c) => {
   const slug = body.slug;
   const targetUrl = body.targetUrl;
   const title = typeof body.title === "string" ? body.title : null;
+  const pinned = body.pinned === undefined ? 0 : flag(body.pinned);
+  const listed = body.listed === undefined ? 1 : flag(body.listed);
+  if (pinned === "invalid" || listed === "invalid") return c.json({ error: "pinned and listed must be booleans" }, 400);
   if (!isValidSlug(slug)) return c.json({ error: "invalid slug" }, 400);
   if (isReservedSlug(slug)) return c.json({ error: "reserved slug" }, 400);
   let parsed: URL;
@@ -52,7 +55,7 @@ linksApi.post("/", async (c) => {
   try {
     const [row] = await db
       .insert(links)
-      .values({ slug, targetUrl, title, createdAt: Date.now() })
+      .values({ slug, targetUrl, title, pinned, listed, createdAt: Date.now() })
       .returning();
     return c.json(row, 201);
   } catch (e) {
@@ -62,6 +65,11 @@ linksApi.post("/", async (c) => {
   }
 });
 
+// pinned/listed arrive as JSON booleans and are stored as 0/1.
+function flag(v: unknown): 0 | 1 | "invalid" {
+  return v === true ? 1 : v === false ? 0 : "invalid";
+}
+
 // Partial update: rename the slug and/or repoint the target. Only the provided
 // fields change. Slug and targetUrl are re-validated exactly like creation, and a
 // slug collision maps to 409 (not a bare 500). Changing the slug breaks any links
@@ -69,13 +77,13 @@ linksApi.post("/", async (c) => {
 linksApi.patch("/:id", async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) return c.json({ error: "invalid id" }, 400);
-  let body: { slug?: unknown; targetUrl?: unknown; title?: unknown };
+  let body: { slug?: unknown; targetUrl?: unknown; title?: unknown; pinned?: unknown; listed?: unknown };
   try {
     body = await c.req.json();
   } catch {
     return c.json({ error: "invalid JSON body" }, 400);
   }
-  const updates: { slug?: string; targetUrl?: string; title?: string | null } = {};
+  const updates: { slug?: string; targetUrl?: string; title?: string | null; pinned?: 0 | 1; listed?: 0 | 1 } = {};
   if (body.slug !== undefined) {
     if (typeof body.slug !== "string" || !isValidSlug(body.slug)) return c.json({ error: "invalid slug" }, 400);
     if (isReservedSlug(body.slug)) return c.json({ error: "reserved slug" }, 400);
@@ -95,6 +103,12 @@ linksApi.patch("/:id", async (c) => {
     updates.targetUrl = body.targetUrl;
   }
   if (body.title !== undefined) updates.title = typeof body.title === "string" ? body.title : null;
+  for (const key of ["pinned", "listed"] as const) {
+    if (body[key] === undefined) continue;
+    const v = flag(body[key]);
+    if (v === "invalid") return c.json({ error: `${key} must be a boolean` }, 400);
+    updates[key] = v;
+  }
   if (Object.keys(updates).length === 0) return c.json({ error: "no fields to update" }, 400);
 
   const db = drizzle(c.env.DB);

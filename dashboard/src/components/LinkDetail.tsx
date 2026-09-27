@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { type Link } from "../api";
+import { type Link, type LinkUpdate } from "../api";
 import { navigate, onLinkClick } from "../router";
 import { LinkStats } from "./LinkStats";
 
@@ -12,7 +12,7 @@ export function LinkDetail({ link, slug, shortBase, ready, onSave, onArchive, on
   slug: string;
   shortBase: string;
   ready: boolean; // the link list has finished loading at least once
-  onSave: (id: number, body: { slug?: string; targetUrl?: string }) => Promise<Link>;
+  onSave: (id: number, body: LinkUpdate) => Promise<Link>;
   onArchive: (id: number) => void;
   onUnarchive: (id: number) => void;
   onDelete: (id: number) => void;
@@ -45,6 +45,12 @@ export function LinkDetail({ link, slug, shortBase, ready, onSave, onArchive, on
     setFormTarget(l.targetUrl);
     setSaveErr("");
     setEditing(true);
+  };
+
+  // Public-page switches save immediately; the list refresh brings the new state back.
+  const toggle = (l: Link, body: LinkUpdate) => {
+    setSaveErr("");
+    onSave(l.id, body).catch(() => setSaveErr("Could not update the public page setting."));
   };
 
   const save = (l: Link) => {
@@ -141,6 +147,23 @@ export function LinkDetail({ link, slug, shortBase, ready, onSave, onArchive, on
                   <button onClick={() => { onArchive(link.id); navigate("/"); }} className="act">Archive</button>
                 )}
               </div>
+              {!link.archived && (
+                <div className="flex flex-wrap items-center gap-5 pt-1">
+                  <span className="kicker">Public page</span>
+                  <span className="text-[13px] text-muted">
+                    {link.listed === 0 ? "Hidden" : link.pinned ? "Pinned to the top" : "Listed"}
+                  </span>
+                  {link.listed !== 0 && (
+                    <button onClick={() => toggle(link, { pinned: !link.pinned })} className="act">
+                      {link.pinned ? "Unpin" : "Pin"}
+                    </button>
+                  )}
+                  <button onClick={() => toggle(link, { listed: link.listed === 0 })} className="act">
+                    {link.listed === 0 ? "Show" : "Hide"}
+                  </button>
+                </div>
+              )}
+              {saveErr && !editing && <p className="text-[13px] text-accent">{saveErr}</p>}
             </div>
           )}
         </div>

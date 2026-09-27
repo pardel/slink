@@ -110,6 +110,13 @@
 }
 
 @utility act {
+  /* Small status tag on a link card (Pinned / Unlisted). */
+  .badge {
+    @apply shrink-0 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted;
+  }
+  .badge-accent {
+    @apply border-accent/30 bg-accent-soft text-accent;
+  }
   /* Inline text action. */
   @apply font-sans text-[13px] text-muted underline decoration-line decoration-1 underline-offset-4 transition hover:text-ink hover:decoration-accent;
 }

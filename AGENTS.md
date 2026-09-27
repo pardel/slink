@@ -17,7 +17,11 @@ npx tsc --noEmit -p dashboard/tsconfig.json   # typecheck the React dashboard
 ## Architecture
 
 - **One Worker, two hosts** (dispatched by hostname in `src/index.ts`):
-  - `example.com` (`PUBLIC_HOST`) serves ONLY short-link redirects (`GET /:slug`).
+  - `example.com` (`PUBLIC_HOST`) serves ONLY the public side: short-link redirects
+    (`GET /:slug`), a no-redirect preview (`GET /:slug+`, logs no click), and the page
+    at `/` listing the newest listed links, pinned first (10 by default,
+    `PUBLIC_LINKS` to change, max 50) (`src/landing.ts`, no JS).
+    Optional `OWNER_NAME` / `OWNER_URL` vars add a "Links by ..." line to that page.
   - `admin.example.com` serves the React dashboard (SPA from the `ASSETS` binding) and the
     `/api/*` JSON API.
 - **Auth**: `admin.example.com` is behind a Cloudflare Access app; `/api/*` is re-verified
@@ -35,9 +39,11 @@ npx tsc --noEmit -p dashboard/tsconfig.json   # typecheck the React dashboard
 - `GET  /api/config` → `{ shortBase, email }` (email from the Access JWT header)
 - `GET  /api/links` → links **with aggregate `clicks` + unique `visitors` counts**
   (one grouped `LEFT JOIN clicks`), newest first
-- `POST /api/links` `{ slug, targetUrl, title? }` → 201 (409 on duplicate slug)
-- `PATCH /api/links/:id` `{ slug?, targetUrl?, title? }` → partial update / rename
-  (re-validates slug + target; 409 on slug collision)
+- `POST /api/links` `{ slug, targetUrl, title?, pinned?, listed? }` → 201 (409 on duplicate slug)
+- `PATCH /api/links/:id` `{ slug?, targetUrl?, title?, pinned?, listed? }` → partial update / rename
+  (re-validates slug + target; 409 on slug collision). `pinned` / `listed` are JSON
+  booleans stored as 0/1: pinned links lead the public page, unlisted ones never
+  appear on it but still redirect. New links default to listed, unpinned.
 - `POST /api/links/:id/archive` · `POST /api/links/:id/unarchive` · `DELETE /api/links/:id`
 
 ### Analytics endpoints
