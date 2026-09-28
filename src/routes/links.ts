@@ -22,13 +22,22 @@ linksApi.get("/", async (c) => {
   return c.json(rows.results);
 });
 
-linksApi.post("/", async (c) => {
-  let body: { slug?: unknown; targetUrl?: unknown; title?: unknown; pinned?: unknown; listed?: unknown };
+type LinkBody = { slug?: unknown; targetUrl?: unknown; title?: unknown; pinned?: unknown; listed?: unknown };
+
+// Parse a JSON object body; null for malformed JSON or any non-object value (null,
+// arrays, strings, numbers), which would otherwise throw on field access and 500.
+async function readBody(req: { json: () => Promise<unknown> }): Promise<LinkBody | null> {
   try {
-    body = await c.req.json();
+    const body = await req.json();
+    return body !== null && typeof body === "object" && !Array.isArray(body) ? (body as LinkBody) : null;
   } catch {
-    return c.json({ error: "invalid JSON body" }, 400);
+    return null;
   }
+}
+
+linksApi.post("/", async (c) => {
+  const body = await readBody(c.req);
+  if (!body) return c.json({ error: "body must be a JSON object" }, 400);
   if (typeof body.slug !== "string" || typeof body.targetUrl !== "string") {
     return c.json({ error: "slug and targetUrl are required" }, 400);
   }
@@ -77,12 +86,8 @@ function flag(v: unknown): 0 | 1 | "invalid" {
 linksApi.patch("/:id", async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) return c.json({ error: "invalid id" }, 400);
-  let body: { slug?: unknown; targetUrl?: unknown; title?: unknown; pinned?: unknown; listed?: unknown };
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: "invalid JSON body" }, 400);
-  }
+  const body = await readBody(c.req);
+  if (!body) return c.json({ error: "body must be a JSON object" }, 400);
   const updates: { slug?: string; targetUrl?: string; title?: string | null; pinned?: 0 | 1; listed?: 0 | 1 } = {};
   if (body.slug !== undefined) {
     if (typeof body.slug !== "string" || !isValidSlug(body.slug)) return c.json({ error: "invalid slug" }, 400);
@@ -145,10 +150,14 @@ linksApi.delete("/:id", async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) return c.json({ error: "invalid id" }, 400);
   const db = drizzle(c.env.DB);
-  // Delete the link's clicks first (explicit, so it holds even if D1 isn't
-  // enforcing the ON DELETE CASCADE), then the link; empty return => 404.
-  await db.delete(clicks).where(eq(clicks.linkId, id));
-  const deleted = await db.delete(links).where(eq(links.id, id)).returning();
+  // Clicks first (explicit, so it holds even if D1 isn't enforcing the ON DELETE
+  // CASCADE), then the link. One batch = one transaction: if the link delete fails,
+  // the clicks delete rolls back too, so analytics are never lost for a surviving
+  // link. Empty return => 404.
+  const [, deleted] = await db.batch([
+    db.delete(clicks).where(eq(clicks.linkId, id)),
+    db.delete(links).where(eq(links.id, id)).returning(),
+  ]);
   if (deleted.length === 0) return c.json({ error: "not found" }, 404);
   return c.json({ ok: true });
 });

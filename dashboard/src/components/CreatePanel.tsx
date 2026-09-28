@@ -16,7 +16,7 @@ export function CreatePanel({ open, shortBase, onClose, onCreated }: {
   const [busy, setBusy] = useState(false);
   const [qr, setQr] = useState("");
 
-  const base = shortBase || location.origin;
+  const base = shortBase; // App renders views only once this has loaded
   const hostLabel = base.replace(/^https?:\/\//, "");
 
   // Reset when the panel is opened.

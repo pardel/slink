@@ -55,6 +55,19 @@ app.use("/api/*", async (c, next) => {
   if (new URL(c.req.url).hostname === c.env.PUBLIC_HOST) return c.notFound();
   return next();
 });
+// CSRF: Access authenticates the browser by cookie (CF_Authorization, SameSite=None
+// by default), so any site could make it send authenticated mutations. Every
+// state-changing /api request must carry an Origin naming this host: browsers always
+// send Origin on non-GET requests and a page cannot forge it. Non-browser clients
+// (scripts using an Access service token) have to set it explicitly.
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+app.use("/api/*", async (c, next) => {
+  if (SAFE_METHODS.has(c.req.method)) return next();
+  if (c.req.header("origin") !== new URL(c.req.url).origin) {
+    return c.json({ error: "cross-origin request refused" }, 403);
+  }
+  return next();
+});
 app.use("/api/*", requireAccess);
 // The dashboard reads its public short-link base (e.g. https://example.com) from here.
 // Cloudflare Access injects the verified user's email on every request to a guarded

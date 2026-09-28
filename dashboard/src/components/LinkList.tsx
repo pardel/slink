@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
 import QRCode from "qrcode";
 import { type Link } from "../api";
 import { onLinkClick } from "../router";
@@ -29,9 +30,75 @@ export function LinkList({ links, shortBase, onArchive, onUnarchive, onDelete }:
   // id-keyed cache would keep serving codes for the old URL.
   const [qr, setQr] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<number | null>(null);
-  const [menuId, setMenuId] = useState<number | null>(null);
+  // The open actions menu and the button that opened it. It renders in a portal on
+  // <body>: each card keeps the rise animation's transform, which makes the card a
+  // stacking context (later cards paint over the menu) and the containing block for
+  // `position: fixed` (the dismissal overlay would cover only the card).
+  const [menu, setMenu] = useState<{ id: number; anchor: HTMLButtonElement } | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const closeMenu = (restoreFocus = false) => {
+    if (restoreFocus) menu?.anchor.focus({ preventScroll: true });
+    setMenu(null);
+  };
+  const toggleMenu = (id: number) => (e: MouseEvent<HTMLButtonElement>) => {
+    const anchor = e.currentTarget;
+    setMenu((m) => (m?.id === id ? null : { id, anchor }));
+  };
+  const menuItems = () => Array.from(menuRef.current?.querySelectorAll<HTMLElement>("a[href], button") ?? []);
 
-  const base = shortBase || location.origin;
+  // Place the menu before paint: below the button, or above it when it would run
+  // past the bottom of the viewport (and there is room above).
+  useLayoutEffect(() => {
+    setMenuPos(null);
+    if (!menu || !menuRef.current) return;
+    const r = menu.anchor.getBoundingClientRect();
+    const h = menuRef.current.offsetHeight;
+    const gap = 4, margin = 8;
+    const fitsBelow = r.bottom + gap + h <= innerHeight - margin;
+    const fitsAbove = r.top - gap - h >= margin;
+    setMenuPos({ top: !fitsBelow && fitsAbove ? r.top - gap - h : r.bottom + gap, right: innerWidth - r.right });
+  }, [menu]);
+  // Once placed (a hidden element can't take focus), move focus to the first action
+  // so keyboard users land in the menu rather than on the next card.
+  useLayoutEffect(() => {
+    if (menuPos) menuItems()[0]?.focus({ preventScroll: true });
+  }, [menuPos]);
+
+  // A fixed-position menu doesn't follow its button, so close it on scroll/resize,
+  // handing focus back to the button if it was inside (else it drops to <body>).
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => closeMenu(!!menuRef.current?.contains(document.activeElement));
+    addEventListener("scroll", close, true);
+    addEventListener("resize", close);
+    return () => {
+      removeEventListener("scroll", close, true);
+      removeEventListener("resize", close);
+    };
+  }, [menu]);
+
+  // Keyboard inside the menu: arrows (and Home/End) move between actions, Escape closes and returns
+  // to the button, and Tab behaves as if the menu sat right after its button:
+  // leaving either end closes it and focus continues from the button.
+  const onMenuKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const items = menuItems();
+    const i = items.indexOf(document.activeElement as HTMLElement);
+    if (e.key === "Escape") { e.preventDefault(); closeMenu(true); }
+    else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const next = (i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+      items[next]?.focus();
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      items[e.key === "Home" ? 0 : items.length - 1]?.focus();
+    } else if (e.key === "Tab") {
+      if (e.shiftKey && i === 0) { e.preventDefault(); closeMenu(true); }
+      else if (!e.shiftKey && i === items.length - 1) closeMenu(true); // default Tab then moves on from the button
+    }
+  };
+
+  const base = shortBase; // App renders views only once this has loaded
   const shortUrl = (slug: string) => `${base}/${slug}`;
   const shortLabel = (slug: string) => `${base.replace(/^https?:\/\//, "")}/${slug}`;
   const detailHref = (slug: string) => `/links/${encodeURIComponent(slug)}`;
@@ -94,30 +161,37 @@ export function LinkList({ links, shortBase, onArchive, onUnarchive, onDelete }:
                 </p>
               </div>
               <div className="relative shrink-0">
-                <button onClick={() => setMenuId((m) => (m === l.id ? null : l.id))} className="icon-btn" title="Actions">
+                <button onClick={toggleMenu(l.id)} className="icon-btn" title="Actions" aria-expanded={menu?.id === l.id}>
                   <KebabIcon className="h-4 w-4" />
                 </button>
-                {menuId === l.id && (
+                {menu?.id === l.id && createPortal(
                   <>
-                    <button className="fixed inset-0 z-10 cursor-default" onClick={() => setMenuId(null)} aria-label="Close menu" />
-                    <div className="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-[10px] border border-line bg-panel py-1 shadow-card">
-                      <a href={href} onClick={(e) => { onLinkClick(href)(e); setMenuId(null); }} className="menu-item">Edit</a>
-                      <a href={qr[shortUrl(l.slug)]} download={`${l.slug}.png`} onClick={() => setMenuId(null)} className="menu-item">Download QR</a>
+                    <button className="fixed inset-0 z-40 cursor-default" onClick={() => closeMenu()} aria-label="Close menu" tabIndex={-1} />
+                    <div
+                      ref={menuRef}
+                      onKeyDown={onMenuKey}
+                      className="fixed z-50 w-40 overflow-hidden rounded-[10px] border border-line bg-panel py-1 shadow-card"
+                      // Unplaced for the one pre-paint pass in which it is measured.
+                      style={menuPos ? { top: menuPos.top, right: menuPos.right } : { top: 0, right: 0, visibility: "hidden" }}
+                    >
+                      <a href={href} onClick={(e) => { onLinkClick(href)(e); closeMenu(); }} className="menu-item">Edit</a>
+                      <a href={qr[shortUrl(l.slug)]} download={`${l.slug}.png`} onClick={() => closeMenu()} className="menu-item">Download QR</a>
                       {l.archived ? (
                         <>
-                          <button onClick={() => { onUnarchive(l.id); setMenuId(null); }} className="menu-item">Unarchive</button>
+                          <button onClick={() => { onUnarchive(l.id); closeMenu(); }} className="menu-item">Unarchive</button>
                           <button
-                            onClick={() => { setMenuId(null); if (confirm(`Delete /${l.slug} and its analytics? This cannot be undone.`)) onDelete(l.id); }}
+                            onClick={() => { closeMenu(); if (confirm(`Delete /${l.slug} and its analytics? This cannot be undone.`)) onDelete(l.id); }}
                             className="menu-item text-accent"
                           >
                             Delete
                           </button>
                         </>
                       ) : (
-                        <button onClick={() => { onArchive(l.id); setMenuId(null); }} className="menu-item">Archive</button>
+                        <button onClick={() => { onArchive(l.id); closeMenu(); }} className="menu-item">Archive</button>
                       )}
                     </div>
-                  </>
+                  </>,
+                  document.body,
                 )}
               </div>
             </div>

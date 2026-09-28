@@ -163,3 +163,10 @@ describe("GET /api/links/:id/stats", () => {
     expect(s.byReferrer.find((r) => r.referrer === "https://x.com")?.n).toBe(2);
   });
 });
+
+describe("indexes", () => {
+  it("serves a ts-only window (account-wide analytics, retention) from clicks_ts_idx", async () => {
+    const plan = await env.DB.prepare("EXPLAIN QUERY PLAN SELECT COUNT(*) FROM clicks WHERE ts >= ?").bind(0).all<{ detail: string }>();
+    expect(plan.results.map((r) => r.detail).join(" ")).toContain("clicks_ts_idx");
+  });
+});

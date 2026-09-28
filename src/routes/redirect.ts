@@ -65,9 +65,13 @@ redirect.get("/:slug", async (c) => {
   const target = buildTarget(row.targetUrl, new URL(c.req.url).searchParams);
   // Fire-and-forget the click write; the redirect never waits on or fails for it,
   // but log failures (e.g. D1 write-quota exhaustion) rather than swallowing them.
-  c.executionCtx.waitUntil(
-    logClick(c.env, c.req.raw, row.id).catch((e) => console.error("click log failed", e))
-  );
+  // GET only: Hono routes HEAD through this handler, and a HEAD is a link checker
+  // or crawler probing the redirect, not a visit.
+  if (c.req.method === "GET") {
+    c.executionCtx.waitUntil(
+      logClick(c.env, c.req.raw, row.id).catch((e) => console.error("click log failed", e))
+    );
+  }
   return c.redirect(target, 302);
 });
 

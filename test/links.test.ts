@@ -2,11 +2,15 @@ import { env, createExecutionContext } from "cloudflare:test";
 import { describe, it, expect, beforeEach } from "vitest";
 import worker from "../src/index";
 
-async function call(method: string, path: string, body?: unknown): Promise<Response> {
+// Same-origin by default, as the dashboard's own fetches are; pass `origin` to
+// simulate a cross-site request (null = no Origin header at all).
+async function call(method: string, path: string, body?: unknown, origin: string | null = "https://slink.test"): Promise<Response> {
+  const headers: Record<string, string> = { "content-type": "application/json", "x-test-auth": "ok" };
+  if (origin !== null) headers.origin = origin;
   const req = new Request(`https://slink.test${path}`, {
     method,
-    headers: { "content-type": "application/json", "x-test-auth": "ok" },
-    body: body ? JSON.stringify(body) : undefined,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   return worker.fetch(req, env, createExecutionContext());
 }
@@ -202,5 +206,55 @@ describe("link CRUD", () => {
     expect(res.status).toBe(200);
     const cfg = (await res.json()) as { shortBase: string };
     expect(cfg.shortBase).toBe("https://example.test");
+  });
+});
+
+describe("CSRF", () => {
+  it("refuses a cross-site mutation with 403", async () => {
+    const created = await call("POST", "/api/links", { slug: "csrf", targetUrl: "https://example.com" });
+    const { id } = (await created.json()) as { id: number };
+    const res = await call("POST", `/api/links/${id}/archive`, undefined, "https://evil.test");
+    expect(res.status).toBe(403);
+    const row = await env.DB.prepare("SELECT archived FROM links WHERE id = ?").bind(id).first<{ archived: number }>();
+    expect(row!.archived).toBe(0);
+  });
+
+  it("refuses a mutation with no Origin header", async () => {
+    const res = await call("POST", "/api/links", { slug: "noorigin", targetUrl: "https://example.com" }, null);
+    expect(res.status).toBe(403);
+  });
+
+  it("allows reads without an Origin header", async () => {
+    const res = await call("GET", "/api/links", undefined, null);
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("request body shape", () => {
+  for (const body of [null, [], "text", 42]) {
+    it(`returns 400 (not 500) for ${JSON.stringify(body)} on create and update`, async () => {
+      expect((await call("POST", "/api/links", body)).status).toBe(400);
+      const created = await call("POST", "/api/links", { slug: "shape", targetUrl: "https://example.com" });
+      const { id } = (await created.json()) as { id: number };
+      expect((await call("PATCH", `/api/links/${id}`, body)).status).toBe(400);
+    });
+  }
+});
+
+describe("DELETE atomicity", () => {
+  it("keeps the clicks when the link delete fails", async () => {
+    const created = await call("POST", "/api/links", { slug: "keep", targetUrl: "https://example.com" });
+    const { id } = (await created.json()) as { id: number };
+    await env.DB.prepare("INSERT INTO clicks (link_id, ts) VALUES (?, ?)").bind(id, Date.now()).run();
+    // Force the second statement of the batch to fail.
+    await env.DB.exec("CREATE TRIGGER block_link_delete BEFORE DELETE ON links BEGIN SELECT RAISE(ABORT, 'blocked'); END");
+    try {
+      const res = await call("DELETE", `/api/links/${id}`);
+      expect(res.status).toBe(500);
+      const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM clicks WHERE link_id = ?").bind(id).first<{ n: number }>();
+      expect(n!.n).toBe(1);
+    } finally {
+      await env.DB.exec("DROP TRIGGER block_link_delete");
+    }
   });
 });

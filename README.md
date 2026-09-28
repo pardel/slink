@@ -31,7 +31,7 @@ The admin dashboard (behind Cloudflare Access) for managing links and reading an
   in-Worker (`src/middleware/access.ts`) against `ACCESS_TEAM_DOMAIN` + `ACCESS_AUD`.
   `example.com` is intentionally public. See [Cloudflare Access](#cloudflare-access) below.
 - **Data**: D1 (`DB` binding): `links` and `clicks` tables (`src/db/schema.ts`).
-  Clicks are logged fire-and-forget on redirect; a daily cron prunes clicks older
+  Clicks are logged fire-and-forget on GET redirects (HEAD probes log none); a daily cron prunes clicks older
   than `CLICKS_RETENTION_DAYS`.
 - **Dashboard** (`dashboard/`): React + Vite + Tailwind, History-API router
   (`router.ts`, no router dep). Routes: `/` (list), `/analytics`, `/links/:slug`.
@@ -71,6 +71,7 @@ All commands run from the repo root.
 
 ```bash
 npm install
+cp wrangler.jsonc.template wrangler.jsonc   # local config (gitignored); placeholders are fine for local dev
 npm run db:migrate:local     # apply the committed migrations to the local D1 database
 npm run build:dashboard      # build the React dashboard into dashboard/dist
 npx wrangler dev                 # local dev: Worker + dashboard at http://localhost:8787/
@@ -113,7 +114,7 @@ The examples below use the reserved placeholder `example.com` / `admin.example.c
 
 These steps are run once by a human who has authenticated with `wrangler` against their Cloudflare account. They are documented here, not automated.
 
-First create your local config from the template. `wrangler.jsonc` is gitignored so real ids/credentials never land in git:
+First create your local config from the template, unless you already did in Develop. `wrangler.jsonc` is gitignored so real ids/credentials never land in git:
 
 ```bash
 cp wrangler.jsonc.template wrangler.jsonc
@@ -142,7 +143,7 @@ Then fill in the placeholders as you go:
 4. Build the dashboard and deploy the Worker:
 
    ```bash
-   npx wrangler deploy
+   npm run deploy
    ```
 
 ## Cloudflare Access
@@ -186,7 +187,10 @@ The public page reads three optional vars from `wrangler.jsonc`: `OWNER_NAME` an
 
 ## API reference
 
-All `/api/*` is admin-only and Access-guarded.
+All `/api/*` is admin-only and Access-guarded. Requests that change data (`POST`,
+`PATCH`, `DELETE`) must also send an `Origin` header matching the admin host
+(`Origin: https://admin.example.com`), or they get a 403. Browsers add it on their
+own; a script calling the API has to set it. Request bodies must be JSON objects.
 
 - `GET  /api/config` → `{ shortBase, email }` (email from the Access JWT header)
 - `GET  /api/links` → links **with aggregate `clicks` + unique `visitors` counts**
@@ -236,6 +240,9 @@ all / custom range) drives both views.
   covers the **whole** `admin.example.com` host; `example.com` has none. `workers_dev:false`
   disables the `*.workers.dev` URL. The API is also Worker-verified (and 404s on
   the public host) as defence in depth.
+- **Cross-site requests are refused.** Access signs you in with a cookie that the
+  browser sends even when another site triggers the request, so every `POST`,
+  `PATCH` and `DELETE` on `/api/*` must carry an `Origin` matching the admin host.
 - **Rate-limit the public redirect.** `/<slug>` writes one D1 row per hit with
   no app-level throttle, so a flood against a known slug could exhaust the
   free-tier D1 daily write quota. Add a Cloudflare WAF **rate-limiting rule**
@@ -246,7 +253,7 @@ all / custom range) drives both views.
   Keep it as a Worker secret and store it separately from any D1 backup/export.
 - **Click retention.** A daily Cron Trigger prunes `clicks` older than
   `CLICKS_RETENTION_DAYS` (default 180, in `wrangler.jsonc` `vars`); lower it for
-  a tighter window. Deleting a link cascades to its click rows.
+  a tighter window. Deleting a link removes its click rows in the same transaction.
 - **Response headers.** The Worker sets a baseline Content-Security-Policy plus
   `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy` on every
   response (`secureHeaders` in `src/index.ts`).

@@ -28,5 +28,8 @@ export const clicks = sqliteTable(
   },
   (table) => ({
     linkTsIdx: index("clicks_link_ts_idx").on(table.linkId, table.ts),
+    // Account-wide analytics and the retention cron filter on ts alone, which the
+    // (link_id, ts) index can't serve; without this they scan every click row.
+    tsIdx: index("clicks_ts_idx").on(table.ts),
   })
 );

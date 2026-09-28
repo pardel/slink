@@ -26,9 +26,11 @@ npx tsc --noEmit -p dashboard/tsconfig.json   # typecheck the React dashboard
     `/api/*` JSON API.
 - **Auth**: `admin.example.com` is behind a Cloudflare Access app; `/api/*` is re-verified
   in-Worker (`src/middleware/access.ts`) against `ACCESS_TEAM_DOMAIN` + `ACCESS_AUD`.
+  Mutating `/api/*` requests also need a same-origin `Origin` header (CSRF guard in
+  `src/index.ts`; the Access cookie is SameSite=None).
   `example.com` is intentionally public. Setup steps: README, "Cloudflare Access".
 - **Data**: D1 (`DB` binding): `links` and `clicks` tables (`src/db/schema.ts`).
-  Clicks are logged fire-and-forget on redirect; a daily cron prunes clicks older
+  Clicks are logged fire-and-forget on GET redirects (HEAD probes log none); a daily cron prunes clicks older
   than `CLICKS_RETENTION_DAYS`.
 - **Dashboard** (`dashboard/`): React + Vite + Tailwind, History-API router
   (`router.ts`, no router dep). Routes: `/` (list), `/analytics`, `/links/:slug`.

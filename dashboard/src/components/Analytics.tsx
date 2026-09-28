@@ -34,7 +34,7 @@ export function Analytics({ shortBase }: { shortBase: string }) {
     return () => { stale = true; };
   }, [period.mode, period.customFrom, period.customTo, attempt]);
 
-  const base = shortBase || location.origin;
+  const base = shortBase; // App renders views only once this has loaded
   const maxTop = Math.max(1, ...(o?.topLinks ?? []).map((t) => t.clicks));
 
   return (

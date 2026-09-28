@@ -212,3 +212,14 @@ describe("GET /:slug", () => {
     expect(row?.referrer).toBe("https://mail.example.com");
   });
 });
+
+describe("HEAD /:slug", () => {
+  it("redirects but logs no click", async () => {
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(new Request("https://example.test/talk", { method: "HEAD" }), env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(302);
+    const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM clicks").first<{ n: number }>();
+    expect(n!.n).toBe(0);
+  });
+});

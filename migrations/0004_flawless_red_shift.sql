@@ -1,0 +1,1 @@
+CREATE INDEX `clicks_ts_idx` ON `clicks` (`ts`);

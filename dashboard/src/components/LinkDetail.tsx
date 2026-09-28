@@ -28,7 +28,7 @@ export function LinkDetail({ link, slug, shortBase, ready, loadError, onRetry, o
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState("");
 
-  const base = shortBase || location.origin;
+  const base = shortBase; // App renders views only once this has loaded
   const shortUrl = `${base}/${slug}`;
   const shortLabel = `${base.replace(/^https?:\/\//, "")}/${slug}`;
 
