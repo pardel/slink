@@ -4,3 +4,6 @@ dashboard/dist/
 .dev.vars
 # Real deploy config (D1 ids, Access AUD/team domain). Copy from wrangler.jsonc.template
 wrangler.jsonc
+
+# local artefact, never tracked (Lupo C1, 2026-11-09)
+.DS_Store
